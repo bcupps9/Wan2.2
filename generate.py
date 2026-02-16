@@ -59,6 +59,20 @@ EXAMPLE_PROMPT = {
 }
 
 
+def _require_optional_pipeline(attr_name, task_name):
+    """Fail only when an optional pipeline is explicitly requested."""
+    pipeline_cls = getattr(wan, attr_name, None)
+    if pipeline_cls is None:
+        import_errors = getattr(wan, "_OPTIONAL_IMPORT_ERRORS", {})
+        root_exc = import_errors.get(attr_name)
+        raise RuntimeError(
+            f"Task '{task_name}' is disabled in this environment "
+            f"(missing optional pipeline '{attr_name}'). "
+            "This setup is intended for T2V/I2V-focused inference."
+        ) from root_exc
+    return pipeline_cls
+
+
 def _validate_args(args):
     # Basic check
     assert args.ckpt_dir is not None, "Please specify the checkpoint directory."
@@ -426,8 +440,9 @@ def generate(args):
             seed=args.base_seed,
             offload_model=args.offload_model)
     elif "ti2v" in args.task:
+        WanTI2V = _require_optional_pipeline("WanTI2V", args.task)
         logging.info("Creating WanTI2V pipeline.")
-        wan_ti2v = wan.WanTI2V(
+        wan_ti2v = WanTI2V(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             device_id=device,
@@ -453,8 +468,9 @@ def generate(args):
             seed=args.base_seed,
             offload_model=args.offload_model)
     elif "animate" in args.task:
+        WanAnimate = _require_optional_pipeline("WanAnimate", args.task)
         logging.info("Creating Wan-Animate pipeline.")
-        wan_animate = wan.WanAnimate(
+        wan_animate = WanAnimate(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             device_id=device,
@@ -480,8 +496,9 @@ def generate(args):
             seed=args.base_seed,
             offload_model=args.offload_model)
     elif "s2v" in args.task:
+        WanS2V = _require_optional_pipeline("WanS2V", args.task)
         logging.info("Creating WanS2V pipeline.")
-        wan_s2v = wan.WanS2V(
+        wan_s2v = WanS2V(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             device_id=device,
