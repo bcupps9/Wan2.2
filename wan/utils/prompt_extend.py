@@ -13,13 +13,22 @@ from typing import Optional, Union
 import dashscope
 import torch
 from PIL import Image
+import warnings
 
+# BEGIN 3dConsistency flash-attn fallback
+# Catch broad import failures (not only ModuleNotFoundError). On older HPC
+# nodes flash-attn can be present but fail import due to GLIBC/runtime issues.
 try:
     from flash_attn import flash_attn_varlen_func
     FLASH_VER = 2
-except ModuleNotFoundError:
+except Exception as e:
     flash_attn_varlen_func = None  # in compatible with CPU machines
     FLASH_VER = None
+    warnings.warn(
+        f"[3dConsistency fallback] flash_attn unavailable in prompt_extend; "
+        f"using non-flash attention path: {e}"
+    )
+# END 3dConsistency flash-attn fallback
 
 from .system_prompt import *
 
